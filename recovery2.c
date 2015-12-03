@@ -13,30 +13,30 @@ struct BootdirEntries
     unsigned char BS_jmpBoot[3];    /* Assembly instruction to jump to boot code */
     unsigned char BS_OEMName[8];    /* OEM Name in ASCII */
     unsigned short BPB_BytsPerSec; /* Bytes per sector. Allowed values include 512, 1024, 2048, and 4096 */
-    unsigned char BPB_SecPerClus; /* Sectors per cluster (data unit). Allowed values are powers of 2, but the cluster size must be 32KB or smaller */
+    unsigned char BPB_SecPerClus; /* Sectors per cluster (data unit). Allowed values are powers of 2, but the cluster size must boot 32KB or smaller */
     unsigned short BPB_RsvdSecCnt;    /* Size in sectors of the reserved area */
-    unsigned char BPB_NumFATs;    /* Number of FATs */
-    unsigned short BPB_RootEntCnt; /* Maximum number of files in the root directory for FAT12 and FAT16. This is 0 for FAT32 */
-    unsigned short BPB_TotSec16;    /* 16-bit value of number of sectors in file system */
+    unsigned char BPB_NumFATs;    /* Numbootr of FATs */
+    unsigned short BPB_RootEntCnt; /* Maximum numbootr of files in the root directory for FAT12 and FAT16. This is 0 for FAT32 */
+    unsigned short BPB_TotSec16;    /* 16-bit value of numbootr of sectors in file system */
     unsigned char BPB_Media;    /* Media type */
     unsigned short BPB_FATSz16; /* 16-bit size in sectors of each FAT for FAT12 and FAT16.  For FAT32, this field is 0 */
     unsigned short BPB_SecPerTrk;    /* Sectors per track of storage device */
-    unsigned short BPB_NumHeads;    /* Number of heads in storage device */
-    unsigned int BPB_HiddSec;    /* Number of sectors before the start of partition */
-    unsigned int BPB_TotSec32; /* 32-bit value of number of sectors in file system.  Either this value or the 16-bit value above must be 0 */
+    unsigned short BPB_NumHeads;    /* Numbootr of heads in storage device */
+    unsigned int BPB_HiddSec;    /* Numbootr of sectors bootfore the start of partition */
+    unsigned int BPB_TotSec32; /* 32-bit value of numbootr of sectors in file system.  Either this value or the 16-bit value above must boot 0 */
     unsigned int BPB_FATSz32;    /* 32-bit size in sectors of one FAT */
     unsigned short BPB_ExtFlags;    /* A flag for FAT */
-    unsigned short BPB_FSVer;    /* The major and minor version number */
-	unsigned int BPB_RootClus;    /* Cluster where the root directory can be found */
-    unsigned short BPB_FSInfo;    /* Sector where FSINFO structure can be found */
+    unsigned short BPB_FSVer;    /* The major and minor version numbootr */
+	unsigned int BPB_RootClus;    /* Cluster where the root directory can boot found */
+    unsigned short BPB_FSInfo;    /* Sector where FSINFO structure can boot found */
     unsigned short BPB_BkBootSec;    /* Sector where backup copy of boot sector is located */
     unsigned char BPB_Reserved[12];    /* Reserved */
-    unsigned char BS_DrvNum;    /* BIOS INT13h drive number */
+    unsigned char BS_DrvNum;    /* BIOS INT13h drive numbootr */
     unsigned char BS_Reserved1;    /* Not used */
     unsigned char BS_BootSig; /* Extended boot signature to identify if the next three values are valid */
-    unsigned int BS_VolID;    /* Volume serial number */
-    unsigned char BS_VolLab[11]; /* Volume label in ASCII. User defines when creating the file system */
-    unsigned char BS_FilSysType[8];    /* File system type label in ASCII */
+    unsigned int BS_VolID;    /* Volume serial numbootr */
+    unsigned char BS_VolLab[11]; /* Volume labootl in ASCII. User defines when creating the file system */
+    unsigned char BS_FilSysType[8];    /* File system type labootl in ASCII */
 };
 
 struct DirdirEntries
@@ -58,7 +58,7 @@ struct DirdirEntries
 #pragma pack(pop)
 
 /* global var */
-struct BootdirEntries *be;
+struct BootdirEntries *boot;
 unsigned int *fat;
 unsigned int cluster_total;
 struct DirdirEntries *dirEntries;
@@ -75,21 +75,39 @@ void printUsage() {
 void init(char* diskPath) {
 	// get boot dirEntries
 	FILE *fp = fopen(diskPath, "r");
-	be = malloc(sizeof(struct BootdirEntries));
-	fread(be, sizeof(struct BootdirEntries), 1, fp);
+	boot = malloc(sizeof(struct BootdirEntries));
+	fread(boot, sizeof(struct BootdirEntries), 1, fp);
 
 	// get fat table
-	unsigned int fatSizeInByte = (unsigned int)(be->BPB_FATSz32 * be->BPB_BytsPerSec);
-	cluster_size = be->BPB_BytsPerSec * be->BPB_SecPerClus;
-	cluster_total = (be->BPB_TotSec32 - (be->BPB_NumFATs * be->BPB_FATSz32) - be->BPB_RsvdSecCnt)/ be->BPB_SecPerClus;
+	unsigned int fatSizeInByte = (unsigned int)(boot->BPB_FATSz32 * boot->BPB_BytsPerSec);
+	cluster_size = boot->BPB_BytsPerSec * boot->BPB_SecPerClus;
+	cluster_total = (boot->BPB_TotSec32 - (boot->BPB_NumFATs * boot->BPB_FATSz32) - boot->BPB_RsvdSecCnt)/ boot->BPB_SecPerClus;
 	fat = malloc(fatSizeInByte);
-	pread(fileno(fp), fat, fatSizeInByte,(unsigned int)(be->BPB_RsvdSecCnt * be->BPB_BytsPerSec));
-	dataOffset = (be->BPB_RsvdSecCnt + be->BPB_NumFATs * be->BPB_FATSz32) * be->BPB_BytsPerSec;
+	pread(fileno(fp), fat, fatSizeInByte,(unsigned int)(boot->BPB_RsvdSecCnt * boot->BPB_BytsPerSec));
+	dataOffset = (boot->BPB_RsvdSecCnt + boot->BPB_NumFATs * boot->BPB_FATSz32) * boot->BPB_BytsPerSec;
 
 	fclose(fp);
 }
 
-void printfile(char* diskPath, int t) {
+void showBootSectorInfo() {
+    printf("Numbootr of FATs = %u\n", boot->BPB_NumFATs);
+    printf("Numebootr of bytes per sector = %u\n", boot->BPB_BytsPerSec);
+    printf("Numebootr of sectors per cluster = %u\n", boot->BPB_SecPerClus);
+    printf("Numebootr of reserved sectors = %u\n", boot->BPB_RsvdSecCnt);
+
+    int i = 0;
+    int allocated = 0;
+    for(i = 2;i < cluster_total+2; i++){
+        if(fat[i]){
+			allocated++;
+        }
+    }
+
+    printf("Numbootr of allocated clusters = %u\n", allocated);
+    printf("Numbootr of free clusters = %u\n", cluster_total-allocated);
+}
+
+void readfile(char* diskPath, int t) {
 
 	FILE *fp = fopen(diskPath, "r");
 	// calc root dir dirEntries span
@@ -110,29 +128,17 @@ void printfile(char* diskPath, int t) {
     fclose(fp);
 }
 
-void showBootSectorInfo() {
-    printf("Number of FATs = %u\n", be->BPB_NumFATs);
-    printf("Numeber of bytes per sector = %u\n", be->BPB_BytsPerSec);
-    printf("Numeber of sectors per cluster = %u\n", be->BPB_SecPerClus);
-    printf("Numeber of reserved sectors = %u\n", be->BPB_RsvdSecCnt);
-
-    int i = 0;
-    int allocated = 0;
-    for(i = 2;i < cluster_total+2; i++){
-        if(fat[i]){
-			allocated++;
-        }
-    }
-
-    printf("Number of allocated clusters = %u\n", allocated);
-    printf("Number of free clusters = %u\n", cluster_total-allocated);
-}
 
 void getsname(int index, char *buffer){
     int i;
     for(i=0;i<8;i++){
 		if (dirEntries[index].DIR_Name[i] == ' ') break;
-		*buffer++ = dirEntries[index].DIR_Name[i];
+		if (dirEntries[index].DIR_Name[i] == 0xe5) {
+			*buffer++ = '?';
+		}
+		else {
+			*buffer++ = dirEntries[index].DIR_Name[i];
+		}
     }
 	if (dirEntries[index].DIR_Name[8] != ' ') {
 		*buffer++ = '.';
@@ -145,9 +151,11 @@ void getsname(int index, char *buffer){
 		*buffer++ = '/';
 
 	*buffer = 0;
+	//printf("%s\n", buffer);
 }
 
 char **tok_input(char* input) {
+	printf("start\n");
 	int position = 0;
 	int bufsize = 1024;
  	char **tokens = malloc(bufsize * sizeof(char*));
@@ -162,15 +170,16 @@ char **tok_input(char* input) {
    	}
    	tokens[position] = NULL;
    	return tokens;
+   	free(tokens);
 }
 
-void listDirectory(char* diskPath, char* path) {
+void listDirectory(char* diskPath, char path[1024]) {
 	char **args;
 	char string[257];
 	args = tok_input(path);
-	printfile(diskPath, be->BPB_RootClus);
-	int i = 0; 
-	int j,k;
+	readfile(diskPath, boot->BPB_RootClus);
+	int i,exsit = 0; 
+	int j;
 	unsigned int count = 1;
 	char sname[257];
 	//printf("start");
@@ -178,6 +187,7 @@ void listDirectory(char* diskPath, char* path) {
 		strcpy(string,args[i]);
 		strcat(string,"/");
 		//printf("%s\n",string);
+		exsit = 0;
 		for (j=0; j<numDirEntries; j++) {
 			if (dirEntries[j].DIR_Name[0] == 0 || dirEntries[j].DIR_Attr == 0x0f)
 				continue;
@@ -185,69 +195,72 @@ void listDirectory(char* diskPath, char* path) {
 			if (strcmp(sname,string) ==0){
 				int clu_no = (int) (dirEntries[j].DIR_FstClusHI<<16)+dirEntries[j].DIR_FstClusLO;
 				//printf("%d\n", clu_no);
-				printfile(diskPath, clu_no);
+				readfile(diskPath, clu_no);
+				exsit = 1;
+				break;
 			}
+		}
+		if (exsit == 0) {
+			printf("No such directory\n");
+			return;
 		}
 		i++;
 	}
-	if (args[i] == NULL) {
-		for (k=0; k<numDirEntries; k++) {
-			if (dirEntries[k].DIR_Name[0] == 0 || dirEntries[k].DIR_Attr == 0x0f)
-				continue;
-			getsname(k, sname);
-			//printf("print now");
-			printf("%u, %s", count++, sname);
-			printf(", %u, %u\n", dirEntries[k].DIR_FileSize, (dirEntries[k].DIR_FstClusHI<<16)+dirEntries[k].DIR_FstClusLO);
-		}
+
+	for (j=0; j<numDirEntries; j++) {
+		if (dirEntries[j].DIR_Name[0] == 0 || dirEntries[j].DIR_Attr == 0x0f)
+			continue;
+		getsname(j, sname);
+		//printf("print now");
+		printf("%u, %s", count++, sname);
+		printf(", %u, %u\n", dirEntries[j].DIR_FileSize, (dirEntries[j].DIR_FstClusHI<<16)+dirEntries[j].DIR_FstClusLO);
 	}
+	
 	free(args);
 }
 
-void recoverShortfile(char* diskPath,char target[256],char outputtarget[256]) {
+void recoverShortfile(char* diskPath,char target[1024],char outputtarget[256]) {
+	char **args;
+	args = tok_input(target);
 	int i,index,count=0,find = 0;
 	char *buffer;
 	char temptarget[256];
 	unsigned int FirstClus;
 	char *ReadData;
+	readfile(diskPath, boot->BPB_RootClus);
 	FILE *fPtr;
 	FILE *fp = fopen(diskPath, "r");
-	printfile(diskPath, be->BPB_RootClus);
+	
 
-	for(i=1;i<256;i++){
-		temptarget[count++] = target[i];
-	}
-
-	for (index=0; index<numDirEntries ;index++){
-		buffer = malloc(13);
-		count = 0;
-		if(dirEntries[index].DIR_Name[0] == 0xe5){
-		for(i=1;i<8;i++){
-			if (dirEntries[index].DIR_Name[i] == ' ') break;
-			buffer[count] = dirEntries[index].DIR_Name[i];
-			count++;
-		}
-		if (dirEntries[index].DIR_Name[8] != ' ') {
-			buffer[count] = '.';
-			count++;
-			for(i=8;i<=10;i++){
-				if (dirEntries[index].DIR_Name[i] == ' ') break;
-				buffer[count] = dirEntries[index].DIR_Name[i];
-				count++;
+	char sname[257];
+	char string[257];
+	int a= 0;
+	int b;
+	while(args[a] != NULL) {
+		strcpy(string,args[a]);
+		strcat(string,"/");
+		//printf("%s\n",string);
+		for (b=0; b<numDirEntries; b++) {
+			if (dirEntries[b].DIR_Name[0] == 0 || dirEntries[b].DIR_Attr == 0x0f)
+				continue;
+			getsname(b, sname);
+			if (strcmp(sname,string) ==0){
+				int clu_no = (int) (dirEntries[b].DIR_FstClusHI<<16)+dirEntries[b].DIR_FstClusLO;
+				//printf("%d\n", clu_no);
+				readfile(diskPath, clu_no);
+				break;
 			}
 		}
-		buffer[count] = 0;
+		if (args[a+1] == NULL){
+			break;
 		}
-		if(strcmp(buffer , temptarget) == 0){
-		find++;
-		}
+		a++;
 	}
 
-	if(find > 1){
-		printf("%s: error - ambiguous\n",target);
-		return;
+	for(i=1;i<256;i++){
+		temptarget[count++] = args[a][i];
 	}
-
-	find = 0;
+	printf("%s\n", temptarget);
 
 	for (index=0; index<numDirEntries ;index++){
 		buffer = malloc(13);
@@ -269,7 +282,9 @@ void recoverShortfile(char* diskPath,char target[256],char outputtarget[256]) {
 			}
 		}
 		buffer[count] = 0;
+	
 
+		//printf("%s\n", buffer);
 		/* find deleted file same as input */
 		if(strcmp(buffer , temptarget) == 0){
 			find = 1;
@@ -294,11 +309,9 @@ void recoverShortfile(char* diskPath,char target[256],char outputtarget[256]) {
 				break;
 			}
 		}
-
-
-		}
 		buffer = NULL;
 		free(buffer);
+	}
 	}
 
 	if(find == 0){
@@ -309,10 +322,6 @@ void recoverShortfile(char* diskPath,char target[256],char outputtarget[256]) {
 }
 
 int main(int argc, char *argv[]) {
-	int opt;
-  	if (argv <= 4){
-    	printUsage();
-  	}
     int option = 0;
     int dFlag = 0;
     int iFlag = 0;
@@ -384,9 +393,6 @@ int main(int argc, char *argv[]) {
 	}
 	if (rFlag) {
 		recoverShortfile(diskPath,recovertarget,outputtarget);
-	}
-	if (RFlag) {
-		recoverintfile(diskPath,recovertarget,outputtarget);
 	}
     return 0;
 }
